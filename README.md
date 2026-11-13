@@ -125,16 +125,6 @@ docs/SEGURIDAD.md        Controles de publicación y acceso
 
 La API del proyecto se mantiene en un repositorio privado por razones de seguridad y confidencialidad de la información de investigación. Su código y configuración de infraestructura no se publican en este repositorio del tablero. El acceso se concede previa autorización del equipo investigador y con los permisos necesarios para el propósito académico solicitado.
 
-Para solicitar acceso, utiliza el enlace de contacto que habilite el equipo investigador e indica tu nombre, institución y propósito de uso. La autorización al repositorio de la API no implica acceso automático a los datos de participantes ni a credenciales de producción.
+Para solicitar acceso, utiliza el [enlace](https://github.com/fernandomonterrosoumg/info-iso-masi-umg/issues) de contacto que habilite el equipo investigador e indica tu nombre, institución y propósito de uso. La autorización al repositorio de la API no implica acceso automático a los datos de participantes ni a credenciales de producción.
 
 **Enlace para solicitar acceso:** pendiente de configurar con la dirección de contacto o formulario oficial del proyecto.
-
-## Publicación y reproducibilidad
-
-Versionar código, documentación y `.env.example`. `.gitignore` excluye `.env`, entornos de producción, carpetas de datos, exportaciones, respaldos y el PDF anotado de trabajo, que contiene identidades y comentarios. El PDF permanece disponible localmente como contexto; para difusión debe prepararse una versión autorizada y anonimizada.
-
-Antes de publicar, revisar `git status --short` y `git diff --cached`. Un `.gitignore` no elimina archivos que ya estuvieran versionados ni sus copias históricas. No se ha inicializado ni publicado un repositorio desde esta entrega.
-
-Para una reproducción completa del análisis faltan el esquema y las vistas SQL, el procedimiento de importación y limpieza, un conjunto anonimizado autorizado y los scripts estadísticos. Esta versión permite reproducir la interfaz y consultar una base compatible; no permite reconstruir la muestra original desde cero.
-
-La fuente metodológica es el manuscrito local «Análisis de madurez en la adopción de ISO/IEC 27001 en empresas tecnológicas guatemaltecas», entregable 2, semana 6. La documentación distingue lo reportado por ese documento de lo verificable en el código disponible.
