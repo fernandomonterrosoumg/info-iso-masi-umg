@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tablero ISO 27001 Guatemala</title>
+<link rel="stylesheet" href="assets/css/tablero.css">
+</head>
+<body>
+<div id="app" v-cloak>
+  <div class="wrap">
+    <header class="top">
+      <div>
+        <h1>Adopción ISO/IEC 27001 en empresas de Guatemala</h1>
+        <p class="sub">Incidentes de seguridad, nivel de adopción e impacto en competitividad</p>
+      </div>
+      <div class="acciones">
+        <span class="estado"><span class="punto" :class="{ ok: conectado }"></span>{{ textoEstado }}</span>
+        <button class="btn" @click="verConexion = !verConexion">Conexión</button>
+        <button class="btn" @click="conectar" :disabled="cargando">{{ cargando ? 'Cargando…' : 'Actualizar' }}</button>
+        <button class="btn primario" @click="exportarExcel" :disabled="!conectado || exportando">{{ exportando ? 'Generando…' : 'Exportar a Excel' }}</button>
+      </div>
+    </header>
+
+    <section class="panel" v-show="verConexion || !conectado">
+      <h2>Conexión a la Neon Data API</h2>
+      <div class="campos">
+        <label class="campo">URL de la Data API
+          <input v-model.trim="config.apiUrl" placeholder="https://ep-….apirest.….neon.tech/neondb/rest/v1">
+        </label>
+        <label class="campo">URL de Neon Auth (para el token anónimo)
+          <input v-model.trim="config.authUrl" placeholder="https://ep-….neonauth.….neon.tech/neondb/auth">
+        </label>
+        <label class="campo">Token JWT (opcional, reemplaza al anónimo)
+          <input type="password" v-model.trim="config.token" autocomplete="off" placeholder="Token de lectura temporal">
+        </label>
+      </div>
+      <div class="acciones" style="margin-top:12px">
+        <button class="btn primario" @click="conectar" :disabled="cargando">Conectar</button>
+      </div>
+      <div v-if="diagnostico.length" style="margin-top:12px">
+        <div class="barra">
+          <strong>Diagnóstico de la conexión</strong>
+          <button class="btn mini" @click="copiarDiagnostico">{{ copiado ? 'Copiado' : 'Copiar diagnóstico' }}</button>
+        </div>
+        <div class="tabla-caja">
+          <table>
+            <thead><tr><th>Paso</th><th>Estado</th><th>Detalle</th></tr></thead>
+            <tbody>
+              <tr v-for="d in diagnostico" :key="d.paso">
+                <td>{{ d.paso }}</td>
+                <td style="white-space:nowrap">{{ d.ok ? '✓ OK' : (d.opcional ? '! Aviso' : '✕ Error') }}</td>
+                <td>{{ d.info }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="ayuda">
+        La URL de Neon Auth está en Neon → <b>Better Auth</b> (Neon Auth) → Configuración. La página pide un token anónimo a
+        <code>…/token/anonymous</code> y lo envía como <code>Authorization: Bearer</code>. El token no se guarda.
+        Abre esta página desde <code>http://localhost</code>, no con doble clic.
+      </p>
+    </section>
+
+    <div class="alerta error" v-if="error" role="alert">
+      <strong>{{ error.titulo }}</strong>{{ error.detalle }}
+    </div>
+    <div class="alerta aviso" v-for="a in avisos" :key="a">{{ a }}</div>
+
+    <template v-if="conectado">
+      <div class="filtros" role="group" aria-label="Filtros">
+        <div class="campo-filtro">
+          <!-- <span>Origen de los datos</span> -->
+          <!-- <span class="segmentado" role="group" aria-label="Origen de los datos"> -->
+            <!-- <button v-for="o in opcionesOrigen" :key="o.v" :aria-pressed="filtros.origen === o.v" @click="filtros.origen = o.v">{{ o.t }}</button> -->
+          <!-- </span> -->
+        </div>
+        <label>Grupo
+          <select v-model="filtros.grupo"><option value="">Todos</option><option v-for="g in opciones.grupos" :key="g">{{ g }}</option></select>
+        </label>
+        <label>Sector
+          <select v-model="filtros.sector"><option value="">Todos</option><option v-for="s in opciones.sectores" :key="s">{{ s }}</option></select>
+        </label>
+        <label>Tamaño
+          <select v-model="filtros.tamano"><option value="">Todos</option><option v-for="t in opciones.tamanos" :key="t">{{ t }}</option></select>
+        </label>
+        <label>ISO 27001 pública
+          <select v-model="filtros.iso"><option value="">Todas</option><option v-for="i in opciones.iso" :key="i">{{ i }}</option></select>
+        </label>
+        <button class="btn" @click="limpiarFiltros">Limpiar</button>
+      </div>
+
+      <!-- <div class="alerta aviso" v-if="incluyeSimulados"> -->
+        <!-- <strong>Incluye respuestas simuladas</strong> -->
+        <!-- Son datos de prueba, no respuestas de las empresas. Para conclusiones usa el filtro «Reales». -->
+      <!-- </div> -->
+
+      <nav class="tabs" role="tablist">
+        <button v-for="t in pestanas" :key="t.k" role="tab" :aria-selected="pestana === t.k" @click="pestana = t.k">{{ t.t }}</button>
+      </nav>
+
+      <!-- RESUMEN -->
+      <section v-show="pestana === 'resumen'">
+        <div class="kpis">
+          <div class="kpi" v-for="k in kpis" :key="k.et">
+            <div class="et">{{ k.et }}</div>
+            <div class="val">{{ k.val }}</div>
+            <div class="det">{{ k.det }}</div>
+          </div>
+        </div>
+        <div class="graficas" :class="{ cargando: cargando }">
+          <article class="card" v-for="g in graficas" :key="g.key">
+            <div class="card-cab">
+              <div>
+                <h3>{{ g.titulo }}</h3>
+                <p class="nota">{{ g.sub }}</p>
+              </div>
+              <div class="acciones">
+                <button class="btn mini" @click="toggleTabla(g.key)">{{ tablasAbiertas[g.key] ? 'Ocultar datos' : 'Datos' }}</button>
+                <button class="btn mini" @click="descargarPng(g.key)">PNG</button>
+              </div>
+            </div>
+            <div class="lienzo" :style="{ height: alturaGrafica(g.key) + 'px' }">
+              <canvas :id="'cv-' + g.key" role="img" :aria-label="g.titulo"></canvas>
+              <div class="vacio" v-if="graficaVacia(g.key)">Sin datos para estos filtros</div>
+            </div>
+            <div class="tabla-caja tabla-mini" v-if="tablasAbiertas[g.key]">
+              <table>
+                <thead><tr><th v-for="(c, i) in datosGraficas[g.key].tabla.cab" :key="i" :class="{ num: i > 0 && typeof datosGraficas[g.key].tabla.filas[0]?.[i] === 'number' }">{{ c }}</th></tr></thead>
+                <tbody>
+                  <tr v-for="(f, j) in datosGraficas[g.key].tabla.filas" :key="j">
+                    <td v-for="(v, i) in f" :key="i" :class="{ num: typeof v === 'number' }">{{ typeof v === 'number' ? fmt(v, 'auto') : v }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section v-show="pestana === 'empresas'">
+        <tabla-datos nombre="Empresas" :columnas="columnas.empresas" :filas="resumenF" @exportar="exportarTabla"></tabla-datos>
+      </section>
+      <section v-show="pestana === 'iso'">
+        <tabla-datos nombre="Adopcion ISO" :columnas="columnas.iso" :filas="isoF" @exportar="exportarTabla"></tabla-datos>
+      </section>
+      <section v-show="pestana === 'incidentes'">
+        <tabla-datos nombre="Incidentes" :columnas="columnas.incidentes" :filas="fichaF" @exportar="exportarTabla"></tabla-datos>
+      </section>
+      <section v-show="pestana === 'detalle'">
+        <div class="filtros">
+          <label>Formulario
+            <select v-model="formularioDetalle">
+              <option value="">Todos</option><option value="FICHA">Ficha de incidentes</option>
+              <option value="IMPACTO">Impacto y competitividad</option><option value="ISO">Adopción ISO 27001</option>
+            </select>
+          </label>
+        </div>
+        <tabla-datos nombre="Preguntas y respuestas" :columnas="columnas.detalle" :filas="detalleTabla" @exportar="exportarTabla"></tabla-datos>
+      </section>
+
+      <!-- RESPUESTAS POR PREGUNTA -->
+      <section v-show="pestana === 'preguntas'">
+        <div class="filtros">
+          <div class="campo-filtro">
+            <span>Formulario</span>
+            <span class="segmentado" role="group" aria-label="Formulario">
+              <button v-for="f in formulariosUI" :key="f.v" :aria-pressed="formularioPreguntas === f.v" @click="formularioPreguntas = f.v">{{ f.t }}</button>
+            </span>
+          </div>
+          <button class="btn" @click="exportarPreguntas" :disabled="exportando">Exportar a Excel</button>
+        </div>
+        <p class="resumen-form">
+          {{ resumenPreguntas.length }} preguntas · {{ fmt(respuestasFormulario, 'int') }} respuestas a este formulario.
+          Se aplican los filtros de grupo, sector, tamaño e ISO de arriba.
+        </p>
+        <div class="preguntas">
+          <article class="card pregunta" v-for="p in resumenPreguntas" :key="p.num">
+            <div class="card-cab">
+              <div>
+                <h3>{{ p.num }}. {{ p.texto }}</h3>
+                <p class="nota">
+                  {{ tiposPregunta[p.tipo] || p.tipo }} · {{ fmt(p.n, 'int') }} respuestas
+                  <template v-if="p.stats && p.stats.n">
+                    · promedio {{ fmt(p.stats.promedio, 'dec2') }} · mediana {{ fmt(p.stats.mediana, 'auto') }}
+                    <template v-if="p.tipo === 'numero'"> · mín {{ fmt(p.stats.min, 'auto') }} · máx {{ fmt(p.stats.max, 'auto') }}</template>
+                  </template>
+                </p>
+              </div>
+              <button class="btn mini" @click="togglePregunta(p.num)">{{ preguntasAbiertas[formularioPreguntas + p.num] ? 'Ocultar respuestas' : 'Ver respuestas' }}</button>
+            </div>
+            <div class="dist" role="list">
+              <div class="dist-fila" role="listitem" v-for="o in p.opciones" :key="o.etiqueta">
+                <span class="dist-et" :title="o.etiqueta">{{ o.etiqueta }}</span>
+                <span class="dist-pista"><span class="dist-barra" :style="{ width: Math.min(100, o.pct) + '%' }"></span></span>
+                <span class="dist-val">{{ fmt(o.cantidad, 'int') }} <small>({{ fmt(o.pct, 'dec1') }} %)</small></span>
+              </div>
+              <div class="nota" v-if="!p.opciones.length">Sin respuestas para estos filtros.</div>
+            </div>
+            <p class="nota" v-if="p.tipo === 'multiple'">Cada respuesta puede marcar varias opciones, por eso los porcentajes pueden sumar más de 100 %.</p>
+            <div class="tabla-caja tabla-mini" v-if="preguntasAbiertas[formularioPreguntas + p.num]">
+              <table>
+                <thead><tr><th class="num">Respuesta</th><th>Empresa</th><th>Valor</th></tr></thead>
+                <tbody>
+                  <tr v-for="r in p.filas" :key="r.respuesta_id"><td class="num">{{ r.respuesta_id }}</td><td>{{ r.empresa ?? '(anónima)' }}</td><td>{{ r.respuesta ?? '—' }}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>
+    </template>
+
+    <footer>
+      Datos: Neon Data API (vistas <code>v_*</code>). Las respuestas con origen «simulado» son datos de prueba.
+    </footer>
+  </div>
+  <div class="oculto-fuera" id="zona-export" aria-hidden="true"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@3.4.38/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="assets/js/tablero.js"></script>
+</body>
+</html>

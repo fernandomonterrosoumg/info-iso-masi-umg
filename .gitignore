@@ -1,0 +1,25 @@
+# Entornos y secretos locales
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+# Datos originales, resultados y despliegues privados
+/data/
+/exports/
+/backups/
+/prod/
+/production/
+*.sql.gz
+*.dump
+# Documento de trabajo con anotaciones; revisar y anonimizar antes de publicar
+/annotated-*.pdf
+# Herramientas
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+.vscode/
+.idea/
+/tmp/
