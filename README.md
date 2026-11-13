@@ -125,6 +125,6 @@ docs/SEGURIDAD.md        Controles de publicación y acceso
 
 La API del proyecto se mantiene en un repositorio privado por razones de seguridad y confidencialidad de la información de investigación. Su código y configuración de infraestructura no se publican en este repositorio del tablero. El acceso se concede previa autorización del equipo investigador y con los permisos necesarios para el propósito académico solicitado.
 
-Para solicitar acceso, utiliza el [enlace](https://github.com/fernandomonterrosoumg/info-iso-masi-umg/issues) de contacto que habilite el equipo investigador e indica tu nombre, institución y propósito de uso. La autorización al repositorio de la API no implica acceso automático a los datos de participantes ni a credenciales de producción.
+Para solicitar acceso, utiliza el [enlace](https://github.com/fernandomonterrosoumg/info-iso-masi-umg/issues).
 
 **Enlace para solicitar acceso:** pendiente de configurar con la dirección de contacto o formulario oficial del proyecto.
